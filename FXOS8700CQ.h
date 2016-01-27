@@ -190,12 +190,14 @@ class FXOS8700CQ
 	void init(void);
 	void standby(void);
 	void active(void);
+	void reset(void);
 
 	// Query sensor data
 	void readAccelData(void);
 	void readMagData(void);
 	void readTempData(void);
-
+	bool isAccelDataRdy (void);
+	bool isMagDataRdy(void);
 	// Resolution
 	float getAres(void);
 	float getMres(void);

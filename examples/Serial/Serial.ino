@@ -1,11 +1,11 @@
 #include <Wire.h>
 #include <FXOS8700CQ.h>
 
-FXOS8700CQ sensor = FXOS8700CQ(0x1F);
+FXOS8700CQ sensor = FXOS8700CQ(0x1E);
 
 void setup() {
   Serial.begin(9600);
-  Wire.begin();
+  Wire1.begin();
   
   // Initialize the FXOS8700CQ
   sensor.init();

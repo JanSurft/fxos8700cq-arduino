@@ -168,6 +168,9 @@ class FXOS8700CQ
 	    int16_t	z;
 	} SRAWDATA;
 
+	// Calibration data
+	int32_t accBias[3] = {0.0, 0.0, 0.0};
+
 	// Sensor data
 	SRAWDATA accelData; // RAW acceleration sensor data
 	SRAWDATA magData; // RAW magnometer sensor data
@@ -201,6 +204,8 @@ class FXOS8700CQ
 	// Resolution
 	float getAres(void);
 	float getMres(void);
+
+	void calibrate(void);
 
 	private:
 	// Sensor address

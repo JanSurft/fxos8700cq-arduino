@@ -220,9 +220,10 @@ void FXOS8700CQ::init()
 }
 #endif
 
-void FXOS8700CQ::calibrate ()
+void FXOS8700CQ::calibrate (void)
 {
 	//TODO implement resolution dependency
+  Serial.println ("Calibrating Accelerometer");
 
   int32_t acc_bias[3] = {0, 0, 0};
   uint16_t ii, fcount;
@@ -271,9 +272,9 @@ void FXOS8700CQ::calibrate ()
   acc_bias[1] /= (int32_t) fcount;
   acc_bias[2] /= (int32_t) fcount;
   
-  accBias[0] = acc_bias[0]*(float) getAres (); // get average values
-  accBias[1] = acc_bias[1]*(float) getAres (); // get average values
-  accBias[2] = acc_bias[2]*(float) getAres (); // get average values
+  accBias[0] = (float) acc_bias[0]*(float) getAres (); // get average values
+  accBias[1] = (float) acc_bias[1]*(float) getAres (); // get average values
+  accBias[2] = (float) acc_bias[2]*(float) getAres (); // get average values
 
   Serial.print ("acceleration bias:");
   Serial.print (accBias[0]);

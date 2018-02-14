@@ -169,7 +169,7 @@ class FXOS8700CQ
 	} SRAWDATA;
 
 	// Calibration data
-	int32_t accBias[3] = {0.0, 0.0, 0.0};
+	float accBias[3] = {0.0, 0.0, 0.0};
 
 	// Sensor data
 	SRAWDATA accelData; // RAW acceleration sensor data

@@ -17,7 +17,7 @@ FXOS8700CQ::FXOS8700CQ(byte addr)
 {
 	address = addr;
 	accelFSR = AFS_2g;     // Set the scale below either 2, 4 or 8
-	accelODR = AODR_200HZ; // In hybrid mode, accel/mag data sample rates are half of this value
+	accelODR = AODR_400HZ; // In hybrid mode, accel/mag data sample rates are half of this value
 	magOSR = MOSR_5;     // Choose magnetometer oversample rate
 }
 
@@ -37,8 +37,9 @@ byte FXOS8700CQ::readReg(byte reg)
 
 	Wire1.beginTransmission(address);
 	Wire1.write(reg);
-	Wire1.endTransmission();
-	Wire1.requestFrom(address, (uint8_t)1);
+	Wire1.endTransmission(false);
+	Wire1.requestFrom(address, (uint8_t)1, (uint8_t) true);
+
 	value = Wire1.read();
 	Wire1.endTransmission();
 
@@ -57,6 +58,7 @@ void FXOS8700CQ::readRegs(byte reg, uint8_t count, byte dest[])
 	while (Wire1.available()) {
 		dest[i++] = Wire1.read();   // Put read results in the Rx buffer
 	}
+	Wire1.endTransmission();
 }
 
 // Read the accelerometer data
@@ -134,7 +136,8 @@ void FXOS8700CQ::active()
 void FXOS8700CQ::reset(void)
 {
 	writeReg(FXOS8700CQ_CTRL_REG2, 0x40);
-	writeReg(FXOS8700CQ_M_CTRL_REG2, 0x40);
+	//writeReg(FXOS8700CQ_M_CTRL_REG2, 0x40);
+	delay (100);
 }
 
 #ifdef ORIGINAL
@@ -170,7 +173,7 @@ void FXOS8700CQ::init()
 
 	standby();  // Must be in standby to change registers
 
-	writeReg(FXOS8700CQ_XYZ_DATA_CFG, 0x00);  // Choose the full scale range to 2, 4, or 8 g.
+	//writeReg(FXOS8700CQ_XYZ_DATA_CFG, 0x00);  // Choose the full scale range to 2, 4, or 8 g.
 
 	// write 1001 1111 = 0x9F to magnetometer control register 1
 	// [7]: m_acal=1: auto calibration enabled
@@ -178,7 +181,7 @@ void FXOS8700CQ::init()
 	// [5]: m_ost=0: no one-shot magnetic measurement
 	// [4-2]: m_os=111=7: 8x oversampling (for 200Hz) to reduce magnetometer noise
 	// [1-0]: m_hms=11=3: select hybrid mode with accel and magnetometer active
-	//writeReg(FXOS8700CQ_M_CTRL_REG1, 0x9F);
+	writeReg(FXOS8700CQ_M_CTRL_REG1, 0x9F);
 
 
 	// write 0010 0000 = 0x20 to magnetometer control register 2
@@ -190,7 +193,7 @@ void FXOS8700CQ::init()
 	// [3]: m_maxmin_dis_ths=0
 	// [2]: m_maxmin_rst=0
 	// [1-0]: m_rst_cnt=00 to enable magnetic reset each cycle
-	//writeReg(FXOS8700CQ_M_CTRL_REG2, 0x20);
+	writeReg(FXOS8700CQ_M_CTRL_REG2, 0x20);
 
 //writeReg(FXOS8700CQ_CTRL_REG2, 0x02); // High Resolution mode
 
@@ -202,7 +205,7 @@ void FXOS8700CQ::init()
 	// [2]: lnoise=1 for low noise mode
 	// [1]: f_read=0 for normal 16 bit reads
 	// [0]: active=0
-	//writeReg(FXOS8700CQ_CTRL_REG1, 0x0C);
+	writeReg(FXOS8700CQ_CTRL_REG1, 0x0C);
 
 	// write 0001 0100 = 0x14 to accelerometer control register 1
 	// [7-6]: aslp_rate=00
@@ -210,15 +213,133 @@ void FXOS8700CQ::init()
 	// [2]: lnoise=1 for low noise mode
 	// [1]: f_read=0 for normal 16 bit reads
 	// [0]: active=0
-	writeReg(FXOS8700CQ_CTRL_REG1, 0x14);
+	//writeReg(FXOS8700CQ_CTRL_REG1, 0x14);
+
+	// write 0010 0100 = 0x14 to accelerometer control register 1
+	// [7-6]: aslp_rate=00
+	// [5-3]: dr=100 for 50Hz data rate (when in accel only mode)
+	// [2]: lnoise=1 for low noise mode
+	// [1]: f_read=0 for normal 16 bit reads
+	// [0]: active=0
+	//writeReg(FXOS8700CQ_CTRL_REG1, 0x24);
 
 
 
 //writeReg(FXOS8700CQ_CTRL_REG1, 0x34);
 
-	active();  // Set to active to start reading
+	//active();  // Set to active to start reading
 }
 #endif
+
+int FXOS8700CQ::setRateODR (enum accelODR odr)
+{
+	standby ();
+
+	if (odr <= 7) {
+		
+		byte set_to = (readReg(FXOS8700CQ_CTRL_REG1) & 0xC7) | (odr << 3);
+		
+		Serial.print ("acc_ctrl_reg0 set to: 0x");
+		Serial.println (set_to, HEX);
+
+		writeReg(FXOS8700CQ_CTRL_REG1, (readReg(FXOS8700CQ_CTRL_REG1) & 0xC7 ) | (odr << 3));
+		delay (10);
+		byte reg = readReg(FXOS8700CQ_CTRL_REG1);
+		Serial.print ("acc_ctrl_reg0: 0x");
+		Serial.println (reg, HEX);
+		return 0;
+	}
+	return -1;
+}
+
+int FXOS8700CQ::setRate (int rate)
+{
+	int set_rate = rate;
+	if (getMode () == HYBRID) {
+		set_rate = rate * 2;
+	}
+
+	switch (set_rate) {
+		case 50:
+			setRateODR (AODR_50HZ);
+			break;
+		case 100:
+			setRateODR (AODR_100HZ);
+			break;
+		case 200:
+			setRateODR (AODR_200HZ);
+			break;
+		case 400:
+			setRateODR (AODR_400HZ);
+			break;
+		case 800:
+			setRateODR (AODR_800HZ);
+			break;
+		default:
+			return -1;
+	}
+	return 0;
+}
+
+int FXOS8700CQ::setRangeFSR (enum accelFSR fsr)
+{
+	standby ();
+
+	if (fsr <= 2) {
+
+		writeReg (FXOS8700CQ_XYZ_DATA_CFG, (readReg (FXOS8700CQ_XYZ_DATA_CFG) & 0xFC) | fsr);
+		accelFSR = fsr;
+		return 0;
+	}
+	return -1;
+
+}
+
+int FXOS8700CQ::setRange (uint8_t range)
+{
+	switch (range)
+	{
+		case 2:
+			setRangeFSR (AFS_2g);
+			break;
+		case 4:
+			setRangeFSR (AFS_4g);
+			break;
+		case 8:
+			setRangeFSR (AFS_8g);
+			break;
+		default:
+			return -1;
+
+	}
+	return 0;
+}
+
+Mode FXOS8700CQ::getMode ()
+{
+	return (Mode) (readReg (FXOS8700CQ_CTRL_REG1) & 0x03);
+}
+
+void FXOS8700CQ::modeHybrid (void)
+{
+	standby ();
+	writeReg(FXOS8700CQ_M_CTRL_REG1, readReg (FXOS8700CQ_M_CTRL_REG1) | 0x03);
+	mode = HYBRID;
+}
+
+void FXOS8700CQ::modeAccelerometerOnly (void)
+{
+	standby ();
+	writeReg(FXOS8700CQ_M_CTRL_REG1, readReg (FXOS8700CQ_M_CTRL_REG1) & 0xFC);
+	mode = ACCEL_ONLY;
+}
+
+void FXOS8700CQ::modeMagnetometerOnly (void)
+{
+	standby ();
+	writeReg (FXOS8700CQ_M_CTRL_REG1, (readReg (FXOS8700CQ_M_CTRL_REG1) & 0xFC) | 0x01);
+	mode = MAG_ONLY;
+}
 
 void FXOS8700CQ::calibrate (void)
 {

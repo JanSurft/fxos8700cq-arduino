@@ -157,6 +157,11 @@ enum magOSR {
 	MOSR_7      // oversample ratio 8 at 200 Hz ODR, 32 at 50 HZ ODR
 };
 
+enum Mode {
+	ACCEL_ONLY=0,
+	MAG_ONLY=1,
+	HYBRID=3
+};
 
 class FXOS8700CQ
 {
@@ -181,6 +186,8 @@ class FXOS8700CQ
 	uint8_t accelODR;
 	uint8_t magOSR;
 
+	Mode mode = ACCEL_ONLY;
+
 	FXOS8700CQ(byte addr);
 
 	// Register functions
@@ -204,6 +211,20 @@ class FXOS8700CQ
 	// Resolution
 	float getAres(void);
 	float getMres(void);
+
+	int setRateODR (enum accelODR odr);
+	int setRate (int rate);
+	
+	int setRangeFSR (enum accelFSR fsr);
+	
+	int setRange (uint8_t range);
+	
+	Mode getMode ();
+	void modeHybrid (void);
+	void modeAccelerometerOnly (void);
+	
+	
+	void modeMagnetometerOnly (void);
 
 	void calibrate(void);
 
